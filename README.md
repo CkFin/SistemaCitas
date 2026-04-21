@@ -13,5 +13,4 @@ API y utilidades para gestionar citas y estudiantes.
 1. Instalar dependencias: `npm install`
 2. Ejecutar servidor: `node server.js`
 
-## Nota
-Este repositorio contiene solo la carpeta `Bases de datos` separada como proyecto independiente.
+
