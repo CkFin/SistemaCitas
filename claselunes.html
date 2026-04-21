@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital - Dashboard Administrativo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border-left: 5px solid #3498db;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.patients { border-left-color: #e74c3c; }
+        .stat-card.doctors { border-left-color: #27ae60; }
+        .stat-card.appointments { border-left-color: #f39c12; }
+        .stat-card.rooms { border-left-color: #9b59b6; }
+        .stat-card.medicines { border-left-color: #e67e22; }
+
+        .stat-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        .section-header {
+            background: #34495e;
+            color: white;
+            padding: 25px 30px;
+            font-size: 1.4em;
+            font-weight: 400;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+
+        thead th {
+            background: #ecf0f1;
+            color: #2c3e50;
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #bdc3c7;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #ecf0f1;
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        td {
+            padding: 16px 20px;
+            vertical-align: middle;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-programada {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-completada {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-cancelada {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .loading::before {
+            content: "⏳ ";
+            font-size: 1.2em;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Sistema Hospitalario</h1>
+            <p>Dashboard de Gestión y Estadísticas</p>
+        </div>
+
+        <div class="content">
+            <!-- Estadísticas Principales -->
+            <div class="stats-container">
+                <div class="stat-card patients">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-number" id="totalPacientes">-</div>
+                    <div class="stat-label">Total Pacientes</div>
+                </div>
+                <div class="stat-card doctors">
+                    <div class="stat-icon">👨‍⚕️</div>
+                    <div class="stat-number" id="totalMedicos">-</div>
+                    <div class="stat-label">Médicos Activos</div>
+                </div>
+                <div class="stat-card appointments">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-number" id="citasProgramadas">-</div>
+                    <div class="stat-label">Citas Programadas</div>
+                </div>
+            </div>
+
+            <div class="grid-layout">
+                <!-- Citas por Especialidad -->
+                <div class="section">
+                    <div class="section-header">
+                        📊 Análisis por Especialidad
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Especialidad</th>
+                                    <th>Total</th>
+                                    <th>Completadas</th>
+                                    <th>Programadas</th>
+                                    <th>Canceladas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaEspecialidades">
+                                <tr><td colspan="5" class="loading">Cargando datos de especialidades...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Distribución por Sexo -->
+                <div class="section">
+                    <div class="section-header">
+                        👫 Distribución de Pacientes
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Género</th>
+                                    <th>Cantidad</th>
+                                    <th>Edad Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaSexo">
+                                <tr><td colspan="3" class="loading">Cargando distribución por género...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NUEVA SECCION: Gestionar Citas -->
+            <div class="section">
+                <div class="section-header">
+                    Gestionar Citas
+                </div>
+                <div style="padding:20px;">
+                    <!-- Formularios rápidos para crear paciente / médico -->
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+                        <div>
+                            <button id="btnTogglePacienteForm" type="button">Nuevo Paciente</button>
+                            <div id="formNuevoPaciente" style="display:none;margin-top:8px;">
+                                <input id="np_nombre" placeholder="Nombre" />
+                                <input id="np_apellido" placeholder="Apellido" />
+                                <input id="np_fecha" type="date" />
+                                <select id="np_sexo">
+                                    <option value="">Sexo</option>
+                                    <option value="M">M</option>
+                                    <option value="F">F</option>
+                                </select>
+                                <input id="np_direccion" placeholder="Dirección" />
+                                <input id="np_telefono" placeholder="Teléfono" />
+                                <input id="np_correo" placeholder="Correo" />
+                                <button id="btnCrearPaciente" type="button">Crear Paciente</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button id="btnToggleMedicoForm" type="button">Nuevo Médico</button>
+                            <div id="formNuevoMedico" style="display:none;margin-top:8px;">
+                                <input id="nm_nombre" placeholder="Nombre" />
+                                <input id="nm_apellido" placeholder="Apellido" />
+                                <input id="nm_telefono" placeholder="Teléfono" />
+                                <input id="nm_correo" placeholder="Correo" />
+                                <select id="nm_especialidad">
+                                    <option value="">Seleccionar especialidad</option>
+                                </select>
+                                <select id="nm_departamento">
+                                    <option value="">Cargando departamentos...</option>
+                                </select>
+                                <button id="btnCrearMedico" type="button">Crear Médico</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="formCita" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                        <input type="hidden" id="id_cita_edit" value="">
+                        <select id="selectPaciente" required>
+                            <option value="">Seleccione paciente</option>
+                        </select>
+                        <select id="selectMedico" required>
+                            <option value="">Seleccione médico</option>
+                        </select>
+                        <input type="date" id="inputFecha" required>
+                        <input type="time" id="inputHora" required>
+                        <input type="text" id="inputMotivo" placeholder="Motivo" style="min-width:220px;">
+                        <select id="selectEstado">
+                            <option value="Programada">Programada</option>
+                            <option value="Completada">Completada</option>
+                            <option value="Cancelada">Cancelada</option>
+                        </select>
+                        <button type="submit" id="btnGuardar">Crear</button>
+                        <button type="button" id="btnCancelarEdit" style="display:none;">Cancelar</button>
+                    </form>
+
+                    <div style="margin-top:20px;">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Paciente</th><th>Médico</th><th>Fecha</th><th>Hora</th><th>Motivo</th><th>Estado</th><th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaCitas">
+                                    <tr><td colspan="7" class="loading">Cargando citas...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-layout">
+                <!-- Lista Médicos -->
+                <div class="section">
+                    <div class="section-header">Médicos Activos</div>
+                    <div class="table-container">
+                        <table>
+                            <!-- Eliminadas columnas Especialidad y Departamento -->
+                            <thead><tr><th>Nombre</th></tr></thead>
+                            <tbody id="tablaMedicos"><tr><td colspan="1" class="loading">Cargando médicos...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Lista Pacientes -->
+                <div class="section">
+                    <div class="section-header">Pacientes Existentes</div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Nombre</th><th>Fecha Nac.</th><th>Teléfono</th></tr></thead>
+                            <tbody id="tablaPacientes"><tr><td colspan="3" class="loading">Cargando pacientes...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Cargar estadísticas generales
+        async function cargarEstadisticas() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/estadisticas_generales');
+                const datos = await response.json();
+
+                // Animación de conteo para las estadísticas
+                animateNumber('totalPacientes', datos.total_pacientes || 0);
+                animateNumber('totalMedicos', datos.total_medicos || 0);
+                animateNumber('citasProgramadas', datos.citas_programadas || 0);
+
+                console.log('✅ Estadísticas cargadas');
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas:', error);
+            }
+        }
+
+        // Función para animar números
+        function animateNumber(elementId, finalValue) {
+            const element = document.getElementById(elementId);
+            let currentValue = 0;
+            const increment = finalValue / 30;
+            const timer = setInterval(() => {
+                currentValue += increment;
+                if (currentValue >= finalValue) {
+                    currentValue = finalValue;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(currentValue);
+            }, 50);
+        }
+
+        // Cargar citas por especialidad (usa endpoint Flask que responde correctamente)
+        async function cargarCitasPorEspecialidad() {
+            const tabla = document.getElementById("tablaEspecialidades");
+            try {
+                tabla.innerHTML = '<tr><td colspan="5" class="loading">Cargando datos de especialidades...</td></tr>';
+                // <-- Cambiado: llamar al endpoint Flask en el puerto 5000 -->
+                const res = await fetch('http://127.0.0.1:5000/citas_por_especialidad');
+                if (!res.ok) {
+                    console.error('Error HTTP al obtener especialidades:', res.status);
+                    const text = await res.text().catch(()=>null);
+                    console.error('Respuesta body:', text);
+                    tabla.innerHTML = '<tr><td colspan="5">Error cargando datos</td></tr>';
+                    return;
+                }
+                // intentar parsear JSON y detectar problemas
+                let datos;
+                try {
+                    datos = await res.json();
+                } catch (parseErr) {
+                    const text = await res.text().catch(()=>null);
+                    console.error('No se pudo parsear JSON de /citas_por_especialidad, body:', text);
+                    tabla.innerHTML = '<tr><td colspan="5">Respuesta inválida del servidor</td></tr>';
+                    return;
+                }
+
+                console.log('cargarCitasPorEspecialidad -> datos recibidos:', datos);
+
+                if (!Array.isArray(datos) || datos.length === 0) {
+                    tabla.innerHTML = '<tr><td colspan="5">No se encontraron datos de especialidades</td></tr>';
+                    return;
+                }
+
+                tabla.innerHTML = '';
+                datos.forEach(esp => {
+                    const fila = document.createElement("tr");
+                    fila.innerHTML = `
+                        <td><strong>${esp.especialidad}</strong></td>
+                        <td>${esp.total_citas}</td>
+                        <td><span class="status-badge status-completada">${esp.completadas}</span></td>
+                        <td><span class="status-badge status-programada">${esp.programadas}</span></td>
+                        <td><span class="status-badge status-cancelada">${esp.canceladas}</span></td>
+                    `;
+                    tabla.appendChild(fila);
+                });
+            } catch (error) {
+                console.error('Error cargando especialidades (network/JS):', error);
+                tabla.innerHTML = '<tr><td colspan="5">Error conectando al servidor</td></tr>';
+            }
+        }
+
+        // Cargar distribución por sexo
+        async function cargarSexo() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/pacientes_por_sexo');
+                const datos = await response.json();
+
+                const tabla = document.getElementById("tablaSexo");
+                tabla.innerHTML = "";
+
+                datos.forEach(sexo => {
+                    const fila = document.createElement("tr");
+                    const generoIcon = sexo.sexo === 'M' ? '👨' : '👩';
+                    const generoTexto = sexo.sexo === 'M' ? 'Masculino' : 'Femenino';
+                    fila.innerHTML = `
+                        <td>${generoIcon} <strong>${generoTexto}</strong></td>
+                        <td>${sexo.total_pacientes}</td>
+                        <td>${sexo.edad_promedio} años</td>
+                    `;
+                    tabla.appendChild(fila);
+                });
+
+                console.log('✅ Distribución por género cargada');
+            } catch (error) {
+                console.error('❌ Error cargando distribución por género:', error);
+            }
+        }
+
+        // API base (Node server)
+        const API_BASE = 'http://127.0.0.1:3001/api';
+
+        // Usar Flask (5000) como fuente principal para medicos/pacientes (tiene especialidad/departamento)
+        async function loadPacientesMedicos() {
+            try {
+                const [pRes, mRes] = await Promise.all([
+                    fetch('http://127.0.0.1:5000/pacientes'),
+                    fetch('http://127.0.0.1:5000/medicos')
+                ]);
+                const pacientes = await pRes.json();
+                const medicos = await mRes.json();
+
+                const sp = document.getElementById('selectPaciente');
+                const sm = document.getElementById('selectMedico');
+                const selPaciente = sp.value; // mantener selección previa
+                const selMedico = sm.value;
+
+                sp.innerHTML = '<option value="">Seleccione paciente</option>';
+                sm.innerHTML = '<option value="">Seleccione médico</option>';
+
+                (pacientes || []).forEach(p => sp.innerHTML += `<option value="${p.id_paciente}">${p.nombre} ${p.apellido}</option>`);
+                (medicos || []).forEach(m => sm.innerHTML += `<option value="${m.id_medico}">${m.nombre} ${m.apellido}</option>`);
+
+                if (selPaciente) sp.value = selPaciente;
+                if (selMedico) sm.value = selMedico;
+            } catch (e) {
+                console.error('Error cargando pacientes/medicos desde Flask', e);
+            }
+        }
+
+        // Obtener lista de especialidades a partir de /medicos (Flask)
+        async function cargarEspecialidadesSelect() {
+            try {
+                const res = await fetch('http://127.0.0.1:5000/medicos');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const medicos = await res.json();
+                const sel = document.getElementById('nm_especialidad');
+                if (!sel) return;
+                const set = new Set();
+                (medicos || []).forEach(m => { if (m.especialidad) set.add(m.especialidad); });
+                sel.innerHTML = '<option value="">Seleccionar especialidad</option>';
+                Array.from(set).sort().forEach(nombre => sel.innerHTML += `<option value="${nombre}">${nombre}</option>`);
+            } catch (e) {
+                console.error('Error cargando especialidades desde /medicos', e);
+                const sel = document.getElementById('nm_especialidad');
+                if (sel) sel.innerHTML = '<option value="">Error cargando especialidades</option>';
+            }
+        }
+
+        // Obtener lista de departamentos a partir de /medicos (Flask)
+        async function cargarDepartamentos() {
+            try {
+                const res = await fetch('http://127.0.0.1:5000/medicos');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const medicos = await res.json();
+                const sel = document.getElementById('nm_departamento');
+                if (!sel) return;
+                const set = new Set();
+                (medicos || []).forEach(m => { if (m.departamento) set.add(m.departamento); });
+                if (set.size === 0) {
+                    sel.innerHTML = '<option value="">No hay departamentos</option>';
+                    return;
+                }
+                sel.innerHTML = '<option value="">Seleccionar departamento</option>';
+                Array.from(set).sort().forEach(nombre => sel.innerHTML += `<option value="${nombre}">${nombre}</option>`);
+            } catch (e) {
+                console.error('Error cargando departamentos desde /medicos', e);
+                const sel = document.getElementById('nm_departamento');
+                if (sel) sel.innerHTML = '<option value="">Error cargando departamentos</option>';
+            }
+        }
+
+        // Crear paciente desde el dashboard (ahora enviamos direccion también)
+        document.getElementById('btnCrearPaciente').addEventListener('click', async () => {
+            const btn = document.getElementById('btnCrearPaciente');
+            const payload = {
+                nombre: document.getElementById('np_nombre').value.trim(),
+                apellido: document.getElementById('np_apellido').value.trim(),
+                fecha_nacimiento: document.getElementById('np_fecha').value || null,
+                sexo: document.getElementById('np_sexo').value || null,
+                direccion: document.getElementById('np_direccion').value.trim() || null,
+                telefono: document.getElementById('np_telefono').value.trim() || null,
+                correo: document.getElementById('np_correo').value.trim() || null
+            };
+            if (!payload.nombre) { alert('Nombre requerido'); return; }
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/pacientes`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    await loadPacientesMedicos();
+                    await cargarPacientesList();
+                    document.getElementById('formNuevoPaciente').style.display = 'none';
+                    // limpiar form
+                    document.getElementById('np_nombre').value = '';
+                    document.getElementById('np_apellido').value = '';
+                    document.getElementById('np_fecha').value = '';
+                    document.getElementById('np_sexo').value = '';
+                    document.getElementById('np_direccion').value = '';
+                    document.getElementById('np_telefono').value = '';
+                    document.getElementById('np_correo').value = '';
+                } else {
+                    console.error('Error creando paciente - respuesta:', data);
+                    alert(data?.error || 'Error creando paciente. Revisa la consola.');
+                }
+            } catch (e) {
+                console.error('Error creando paciente (network):', e);
+                alert('No se pudo conectar al servidor de API.');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Crear médico desde el dashboard (mejor manejo de errores)
+        document.getElementById('btnCrearMedico').addEventListener('click', async () => {
+            const btn = document.getElementById('btnCrearMedico');
+            const payload = {
+                nombre: document.getElementById('nm_nombre').value.trim(),
+                apellido: document.getElementById('nm_apellido').value.trim(),
+                telefono: document.getElementById('nm_telefono').value.trim() || null,
+                correo: document.getElementById('nm_correo').value.trim() || null,
+                id_especialidad: document.getElementById('nm_especialidad').value || null,
+                id_departamento: document.getElementById('nm_departamento').value || null
+            };
+            if (!payload.nombre) { alert('Nombre requerido'); return; }
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/medicos`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    await loadPacientesMedicos();
+                    await cargarMedicosList();
+                    document.getElementById('formNuevoMedico').style.display = 'none';
+                    // limpiar form
+                    document.getElementById('nm_nombre').value = '';
+                    document.getElementById('nm_apellido').value = '';
+                    document.getElementById('nm_telefono').value = '';
+                    document.getElementById('nm_correo').value = '';
+                    document.getElementById('nm_especialidad').value = '';
+                    document.getElementById('nm_departamento').value = '';
+                } else {
+                    alert(data.error || 'Error creando médico');
+                }
+            } catch (e) {
+                console.error('Error creando medico', e);
+                alert('Error conectando a la API');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Ajuste: loadPacientesMedicos mantiene selects y ahora es usada tras creación
+        async function loadPacientesMedicos() {
+            try {
+                const [pRes, mRes] = await Promise.all([
+                    fetch('http://127.0.0.1:5000/pacientes'),
+                    fetch('http://127.0.0.1:5000/medicos')
+                ]);
+                const pacientes = await pRes.json();
+                const medicos = await mRes.json();
+
+                const sp = document.getElementById('selectPaciente');
+                const sm = document.getElementById('selectMedico');
+                const selPaciente = sp.value; // mantener selección previa
+                const selMedico = sm.value;
+
+                sp.innerHTML = '<option value="">Seleccione paciente</option>';
+                sm.innerHTML = '<option value="">Seleccione médico</option>';
+
+                (pacientes || []).forEach(p => sp.innerHTML += `<option value="${p.id_paciente}">${p.nombre} ${p.apellido}</option>`);
+                (medicos || []).forEach(m => sm.innerHTML += `<option value="${m.id_medico}">${m.nombre} ${m.apellido}</option>`);
+
+                if (selPaciente) sp.value = selPaciente;
+                if (selMedico) sm.value = selMedico;
+            } catch (e) {
+                console.error('Error cargando pacientes/medicos desde Flask', e);
+            }
+        }
+
+        // Cargar citas
+        async function loadCitasApi() {
+            try {
+                const res = await fetch(`${API_BASE}/citas`);
+                const datos = await res.json();
+                const tbody = document.getElementById('tablaCitas');
+                tbody.innerHTML = '';
+                if (!datos.length) {
+                    tbody.innerHTML = '<tr><td colspan="7">No hay citas</td></tr>';
+                    return;
+                }
+                datos.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${c.paciente_nombre || ''} ${c.paciente_apellido || ''}</td>
+                        <td>${c.medico_nombre || ''} ${c.medico_apellido || ''}</td>
+                        <td>${c.fecha}</td>
+                        <td>${c.hora}</td>
+                        <td>${c.motivo}</td>
+                        <td>${c.estado}</td>
+                        <td>
+                            <button data-id="${c.id_cita}" class="editCita">Editar</button>
+                            <button data-id="${c.id_cita}" class="deleteCita">Borrar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // eventos
+                document.querySelectorAll('.editCita').forEach(btn => btn.addEventListener('click', async (e) => {
+                    const id = e.target.dataset.id;
+                    const item = datos.find(x => x.id_cita == id);
+                    if (!item) return;
+                    document.getElementById('id_cita_edit').value = item.id_cita;
+                    document.getElementById('selectPaciente').value = item.id_paciente;
+                    document.getElementById('selectMedico').value = item.id_medico;
+                    document.getElementById('inputFecha').value = item.fecha;
+                    document.getElementById('inputHora').value = item.hora;
+                    document.getElementById('inputMotivo').value = item.motivo;
+                    document.getElementById('selectEstado').value = item.estado;
+                    document.getElementById('btnGuardar').textContent = 'Actualizar';
+                    document.getElementById('btnCancelarEdit').style.display = 'inline-block';
+                }));
+                document.querySelectorAll('.deleteCita').forEach(btn => btn.addEventListener('click', async (e) => {
+                    const id = e.target.dataset.id;
+                    if (!confirm('Confirmar eliminación')) return;
+                    await fetch(`${API_BASE}/citas/${id}`, { method: 'DELETE' });
+                    loadCitasApi();
+                }));
+
+            } catch (e) {
+                console.error('Error cargando citas', e);
+            }
+        }
+
+        // Form handle
+        document.getElementById('formCita').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const idEdit = document.getElementById('id_cita_edit').value;
+            const payload = {
+                id_paciente: document.getElementById('selectPaciente').value,
+                id_medico: document.getElementById('selectMedico').value,
+                fecha: document.getElementById('inputFecha').value,
+                hora: document.getElementById('inputHora').value,
+                motivo: document.getElementById('inputMotivo').value,
+                estado: document.getElementById('selectEstado').value
+            };
+            try {
+                if (idEdit) {
+                    await fetch(`${API_BASE}/citas/${idEdit}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    await fetch(`${API_BASE}/citas`, {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                }
+                // limpiar y recargar
+                document.getElementById('formCita').reset();
+                document.getElementById('id_cita_edit').value = '';
+                document.getElementById('btnGuardar').textContent = 'Crear';
+                document.getElementById('btnCancelarEdit').style.display = 'none';
+                loadCitasApi();
+            } catch (e) {
+                console.error('Error guardando cita', e);
+            }
+        });
+
+        document.getElementById('btnCancelarEdit').addEventListener('click', () => {
+            document.getElementById('formCita').reset();
+            document.getElementById('id_cita_edit').value = '';
+            document.getElementById('btnGuardar').textContent = 'Crear';
+            document.getElementById('btnCancelarEdit').style.display = 'none';
+        });
+
+        // NUEVAS funciones JS: cargar medicos y pacientes listados
+        async function cargarMedicosList() {
+            try {
+                // <-- usar Flask que ya devuelve especialidad/departamento -->
+                const res = await fetch('http://127.0.0.1:5000/medicos');
+                const datos = await res.json();
+                const tbody = document.getElementById('tablaMedicos');
+                tbody.innerHTML = '';
+                if (!datos || !datos.length) { tbody.innerHTML = '<tr><td colspan="1">No hay médicos</td></tr>'; return; }
+                datos.forEach(m => {
+                    const tr = document.createElement('tr');
+                    // solo columna Nombre (se puede ampliar con teléfono si se desea)
+                    tr.innerHTML = `<td>${m.nombre} ${m.apellido}</td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error('Error cargando medicos', e); }
+        }
+
+        async function cargarPacientesList() {
+            try {
+                const res = await fetch('http://127.0.0.1:5000/pacientes');
+                const datos = await res.json();
+                const tbody = document.getElementById('tablaPacientes');
+                tbody.innerHTML = '';
+                if (!datos || !datos.length) { tbody.innerHTML = '<tr><td colspan="3">No hay pacientes</td></tr>'; return; }
+                datos.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${p.nombre} ${p.apellido}</td><td>${p.fecha_nacimiento || ''}</td><td>${p.telefono || ''}</td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error('Error cargando pacientes desde Flask', e); }
+        }
+
+        // Inicializar dashboard (añadir cargas nuevas)
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(async () => {
+                cargarEstadisticas();
+                cargarCitasPorEspecialidad(); // <- llamada a la función correcta para la tabla
+                cargarSexo();
+                loadPacientesMedicos();
+                loadCitasApi();
+                cargarMedicosList();
+                cargarPacientesList();
+
+                // cargar el select de especialidades para formulario (opcional en inicio)
+                await cargarEspecialidadesSelect();
+                await cargarDepartamentos();
+            }, 500);
+        });
+
+        // Toggle forms
+        document.getElementById('btnTogglePacienteForm').addEventListener('click', () => {
+	const f = document.getElementById('formNuevoPaciente');
+	f.style.display = (f.style.display === 'none') ? 'block' : 'none';
+});
+// Cambiado: no esperar a las cargas para mostrar el formulario
+document.getElementById('btnToggleMedicoForm').addEventListener('click', () => {
+	const f = document.getElementById('formNuevoMedico');
+	const willShow = (f.style.display === 'none');
+	// mostrar/ocultar de inmediato
+	f.style.display = willShow ? 'block' : 'none';
+	// si se va a abrir, cargar selects en background sin bloquear la UI
+	if (willShow) {
+		cargarEspecialidadesSelect().catch(err => {
+			console.error('Error cargando especialidades (no bloqueante):', err);
+		});
+		cargarDepartamentos().catch(err => {
+			console.error('Error cargando departamentos (no bloqueante):', err);
+		});
+	}
+});
+    </script>
+</body>
+</html>
